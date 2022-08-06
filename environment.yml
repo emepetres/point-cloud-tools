@@ -1,0 +1,11 @@
+name: point-cloud-tools
+channels:
+  - defaults
+  - anaconda
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      - open3d==0.15.1
+      - laspy==2.2.0
