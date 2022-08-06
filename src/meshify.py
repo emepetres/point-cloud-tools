@@ -7,24 +7,18 @@ import open3d as o3d
 from common.las import read_las
 
 
-def _create_pcd(points: np.array, colors: np.array) -> o3d.geometry.PointCloud:
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(points.transpose())
-    pcd.colors = o3d.utility.Vector3dVector(colors.transpose() / 255)
-    # # pcd.normals = o3d.utility.Vector3dVector(point_cloud[:,6:9])
+def _postprocess_mesh(mesh, max_triangles: int = None, clean: bool = True):
 
-    return pcd
-
-
-def _postprocess_mesh(mesh, triangles: int = 10000, clean: bool = False):
-
-    dec_mesh = mesh.simplify_quadric_decimation(triangles)
+    if max_triangles is not None:
+        mesh = mesh.simplify_quadric_decimation(max_triangles)
 
     if clean:
-        dec_mesh.remove_degenerate_triangles()
-        dec_mesh.remove_duplicated_triangles()
-        dec_mesh.remove_duplicated_vertices()
-        dec_mesh.remove_non_manifold_edges()
+        mesh.remove_degenerate_triangles()
+        mesh.remove_duplicated_triangles()
+        mesh.remove_duplicated_vertices()
+        mesh.remove_non_manifold_edges()
+
+    return mesh
 
 
 def _export_mesh(mesh, path: str):
@@ -34,41 +28,33 @@ def _export_mesh(mesh, path: str):
 
 
 def meshify_bpa(
-    points: np.array,
-    colors: np.array,
+    pcd: o3d.geometry.PointCloud,
     output: str,
-    depth: int = 8,
-    scale: Tuple[float, float] = (1, 1),
-    triangles: int = 10000,
-    clean: bool = False,
+    max_triangles: int = None,
+    clean: bool = True,
 ):
-    pcd = _create_pcd(points, colors)
-
     distances = pcd.compute_nearest_neighbor_distance()
     avg_dist = np.mean(distances)
-    radius = 3 * avg_dist
+    radius = 2 * avg_dist
 
     bpa_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
         pcd, o3d.utility.DoubleVector([radius, radius * 2])
     )
 
     # downsample the mesh to an acceptable number of triangles
-    dec_mesh = _postprocess_mesh(bpa_mesh, triangles, clean)
+    dec_mesh = _postprocess_mesh(bpa_mesh, max_triangles, clean)
 
     _export_mesh(dec_mesh, output)
 
 
 def meshify_poisson(
-    points: np.array,
-    colors: np.array,
+    pcd: o3d.geometry.PointCloud,
     output: str,
     depth: int = 8,
     scale: float = 1.1,
-    triangles: int = 10000,
-    clean: bool = False,
+    max_triangles: int = None,
+    clean: bool = True,
 ):
-    pcd = _create_pcd(points, colors)
-
     poisson_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
         pcd, depth=depth, width=0, scale=scale, linear_fit=False
     )[0]
@@ -79,7 +65,7 @@ def meshify_poisson(
     p_mesh_crop = poisson_mesh.crop(bbox)
 
     # downsample the mesh to an acceptable number of triangles
-    dec_mesh = _postprocess_mesh(p_mesh_crop, triangles, clean)
+    dec_mesh = _postprocess_mesh(p_mesh_crop, max_triangles, clean)
 
     _export_mesh(dec_mesh, output)
 
@@ -91,7 +77,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    points, colors = read_las(args.input)
+    pcd = read_las(args.input, normals=True)
 
-    # meshify_bpa(points, colors, f"{args.input[:-4]}_bpa.ply")
-    meshify_poisson(points, colors, f"{args.input[:-4]}_poisson.ply")
+    meshify_bpa(pcd, f"{args.input[:-4]}_bpa_2radius.ply", clean=True)
+    meshify_poisson(
+        pcd,
+        f"{args.input[:-4]}_poisson_depth8.ply",
+        depth=8,
+        clean=True,
+    )
