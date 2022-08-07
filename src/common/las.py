@@ -22,9 +22,7 @@ def _create_pcd(
     return pcd
 
 
-def _get_points_colors(
-    point_cloud: lp.LasData, normals: bool = False
-) -> Tuple[np.ndarray, np.ndarray]:
+def _get_points_colors(point_cloud: lp.LasData) -> Tuple[np.ndarray, np.ndarray]:
     points = point_cloud.xyz
 
     format_id = point_cloud.header.point_format.id
@@ -33,18 +31,23 @@ def _get_points_colors(
     if not hasColor:
         return (points, np.full(points.shape, 255))
 
-    reds = point_cloud.red / 255
-    greens = point_cloud.green / 255
-    blues = point_cloud.blue / 255
+    colors = np.vstack(
+        (point_cloud.red, point_cloud.green, point_cloud.blue)
+    ).transpose()
 
-    isRGB = np.max(reds) <= 1 and np.max(greens) <= 1 and np.max(blues) <= 1
+    colors = colors / 255
+    cmax = np.max(colors)
+
+    isRGB = cmax <= 1
+    isPossiblyGamma = not isRGB and cmax <= 255
     if not isRGB:
-        # not rgb colors, assuming is gamma encoded
-        reds = np.float_power(reds / 255, 2.2)
-        greens = np.float_power(greens / 255, 2.2)
-        blues = np.float_power(blues / 255, 2.2)
-
-    colors = np.vstack((reds, greens, blues)).transpose()
+        if isPossiblyGamma:
+            # assuming is gamma encoded
+            colors = np.float_power(colors / 255, 2.2)
+        else:
+            # assuming is linear encoded
+            cmin = np.min(colors)
+            colors = (colors - cmin) / (cmax - cmin)
 
     return (points, colors)
 

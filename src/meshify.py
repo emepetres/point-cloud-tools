@@ -1,5 +1,5 @@
 import argparse
-from typing import Tuple
+from pathlib import Path
 
 import numpy as np
 import open3d as o3d
@@ -35,7 +35,7 @@ def meshify_bpa(
 ):
     distances = pcd.compute_nearest_neighbor_distance()
     avg_dist = np.mean(distances)
-    radius = 2 * avg_dist
+    radius = 3 * avg_dist
 
     bpa_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
         pcd, o3d.utility.DoubleVector([radius, radius * 2])
@@ -79,10 +79,9 @@ if __name__ == "__main__":
 
     pcd = read_las(args.input, normals=True)
 
-    meshify_bpa(pcd, f"{args.input[:-4]}_bpa_2radius.ply", clean=True)
-    meshify_poisson(
-        pcd,
-        f"{args.input[:-4]}_poisson_depth8.ply",
-        depth=8,
-        clean=True,
-    )
+    base_name = Path(args.input).name[:-4]
+    output_dir = f"{args.input[:-4]}"
+    Path(output_dir).mkdir(exist_ok=True)
+
+    meshify_bpa(pcd, f"{output_dir}/{base_name}_bpa.ply")
+    meshify_poisson(pcd, f"{output_dir}/{base_name}_poisson.ply", depth=8)
