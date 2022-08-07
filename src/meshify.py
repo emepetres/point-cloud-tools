@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import open3d as o3d
 
-from common.las import read_las
+from formats.las import read_las
 
 
 def _postprocess_mesh(mesh, max_triangles: int = None, clean: bool = True):
