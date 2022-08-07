@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "cwd": "${workspaceFolder}",
-            "args": ["--input", "samples/mountain.las"]
+            "args": ["--input", "samples/mountain.las", "-poisson", "--depth", "10"]
         }
     ]
 }

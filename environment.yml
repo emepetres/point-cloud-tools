@@ -6,6 +6,8 @@ channels:
 dependencies:
   - python=3.9
   - pip
+  - xerces-c # linux: sudo apt install libxerces-c-dev
   - pip:
       - open3d==0.15.1
       - laspy==2.2.0
+      - pye57==0.4.1
