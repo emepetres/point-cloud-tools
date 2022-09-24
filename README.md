@@ -53,3 +53,6 @@ Origiinal doubleBunny.e57                       |  Generated mesh
 ## License
 
 This software is released under the [MIT license](https://opensource.org/licenses/MIT)
+
+
+I built a tool to convert point clouds into triangle mesh with textures. Pretty impresive results on open surfaces, but still room for improvement on complex closed ones. Look at the code at <https://github.com/emepetres/point-cloud-tools>!
